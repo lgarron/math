@@ -1,0 +1,78 @@
+\documentclass[11pt]{amsart}
+\usepackage{geometry}                % See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   % ... or a4paper or a5paper or ... 
+%\geometry{landscape}                % Activate for for rotated page geometry
+%\usepackage[parfill]{parskip}    % Activate to begin paragraphs with an empty line rather than an indent
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\usepackage{epstopdf}
+\DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+
+
+
+\title{Big Oh is not Totally Ordered.\\Like, Totally Not.}
+\author{Lucas Garron}
+\date{November 22, 2012}                                           % Activate to display a given date or no date
+
+\begin{document}
+\maketitle
+%\section{}
+%\subsection{}
+
+[Warning: I will assume that you are already familiar with ``big oh'' in mathematics/computer science, both with the exact definition as well as informal reasoning based on it.]
+
+This quarter I'm TAing CS242 (Programming Languages). I was almost going to TA CS161 (Algorithms) instead, so at the beginning of the quarter I decided to entertain myself (and Julie) with a question that I had thought about a few times before:
+
+Most math/computer science classes deal with ``nice'' big-oh functions like $O(1)$, $O(x)$, $O(\log(x))$, $O(e^x)$, and simple combinations of such functions. These values often come about when we care about how fast something is growing, where we care about making comparisons like $O(x \log(x)) < O(x^2)$. But is it always possible to make such a comparison?
+
+Surpisingly, the answer is no: it's possible to find two functions such that neither is big-oh of the other.
+
+Let's think about this from the start. First, it is useful to think of Big Oh as a mapping from a function to a set of functions that grow *no faster*. Thus, $O(x)$ is ``the set of functions that are at most linear'', and is the same as $O(2x)$. Moreover, it is possible to express whether a function grows slower than another by comparing their big-ohs: $O(log(x)) < O(x)$ because there is a function (namely, $f(x) = x$) in the second, but not in the first.
+
+Big-oh is relatively well-behaved. Using the definition of big-oh, it is fairly easy to see that big oh with $<$ is a [poset](http://en.wikipedia.org/wiki/Poset):
+
+\begin{enumerate}
+\item $O(f) = O(f)$
+\item If $O(f) \leq O(g)$ and $O(g) \leq O(f)$, then $O(f) = O(g)$.
+\item If $O(f) \leq O(g)$ and $O(g) \leq O(h)$, then $O(f) \leq O(h)$
+\end{enumerate}
+
+However, if we want the growth of any two functions to be comparable, then we need to make the first condition stronger: prove that for every $f$ and $g$, either $O(f) \leq O(g)$ or $O(g) \leq O(f)$. Otherwise, we need to find a counterexample. We would need two functions $A$ and $B$ such that ${A \over B}$ gets *arbitrarily small* and *arbitrarily large* forever:
+
+$$\forall R>0 \forall n\in\mathbb{Z} \exists m>n \text{ s.t. }\forall {A(m) \over B(m)} \geq R$$
+$$\forall R>0 \forall n\in\mathbb{Z} \exists m>n \text{ s.t. }\forall {A(m) \over B(m)} \leq R$$
+
+One thing should strike you: We only care about the ratio of $A$ and $B$. We can even assume that $B(x) = 1$, if we want! Armed with this, we can formulate an answer: $A/B$ needs to oscillate up to infinity and down to $0$ without ever being bounded. A simple solution is to oscillate between $x$ and $1/x$. Letting $s(x) = \cos(\pi x) \approx (-1)^x$ be a function that oscillates between $1$ and $-1$:
+
+$${A(x) \over B(x)} = n^{s(n)}$$
+
+However, there is something unsatisfactory about taking $B(x) = 1$ or $B(x) = x$ and leaving it at that. The functions don't really represent *growth*, they represent unbounded *fluctuation*. If we wanted that, we could just have let the functions take on $0$ (or negative values), but that's beside the spirit of the problem. Is it possible find strictly increasing functions $A$ and $B$?
+
+For this, we need a different approach. Consider the following:
+
+$$A = s(n), B = -s(n)$$
+
+This looks like two sine waves out of phase, although it might be better to think of it as a single function out of phase racing past itself. And we want it to be strictly increasing. So let's add a slope that's larger than the current steepest slope (e.g. $4$, which is $> \pi$):
+
+$$A = 4n+s(n), B = 4n-s(n)$$
+
+However, these functions only differ by $2 s(n)$, which is at most $2 \in O(1)$. We can turn this into an arbitrarily large difference by multiplying with a growing function like $n$:
+
+$$A = n \left(4n + s(n)\right), B = n \left(4n - s(n)\right)$$
+
+Now, how do we turn this difference into a ratio? Exponentiation!
+
+$$A = 2^{n \left(4n + s(n)\right)}, B = 2^{n \left(4n - s(n)\right)}$$
+
+The functions are still (very) increasing, but the linear wobbling has now turned into a scalar wobbling, and the ratio
+
+$${A(x) \over B(x)} = 2^{2 s(n)}$$
+
+becomes arbitrarily large and small. Thus, we have found two strictly increasing functions that interleave their spurts enough to to grow *way* past each other all the time -- but still overtake each other repeatedly.
+
+Perhaps this still feels a bit contrived, but it decimates the original question: big-oh is definitely only a partial order, and not a total order. It is not hard to characterize what makes a function wobble enough to make it big-oh-incomparable with another. Furthermore, it is possible to take a reasonable constraint of ``growth'' and leverage small differences to satisfy it while maintaining incomparability. So, while we can rest in comfort that our usual big-oh bounds are comfortable, we have to be very careful about assuming this property of growth for arbitrary functions
+
+A lot of this is covered on a blog post and its comments at \url{http://ansuz.sooke.bc.ca/entry/185}, although I felt like putting it down in a single narrative. There are still some ways to go from here. It's probably worth illustrating the example functions with pictures. But it would also be nice to bolster the intuition behind what exactly makes two ``reasonable'' functions incomparable. What are this slowest-growing (but strictly increasing) functions with this property? What exact tricks work to ``blow apart'' a ratio? Is there a non-trivial way to ``patch'' big oh to make all functions comparable in a reasonable way? How does this affect any related ways of looking at growth? Is there any place this might matter in practice?
+
+\end{document}  
