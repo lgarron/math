@@ -44,7 +44,7 @@ Suppose we wanted to rewrite `displayDay` using such a `cURL` call. In order to 
     }
     displayDayWithCallback();
 
-This is also called a continuation, because `callback` represents the place where the computation is continued after the AJAX call returns. In this case, the continuation is just what the program would have done *inside* displayDay; it is the continuation of displayDay() at the *current* point when we try to get the daa using AJAX. Ideally, we'd really just like to write the following:
+This is also called a continuation, because `callback` represents the place where the computation is continued after the AJAX call returns. In this case, the continuation is just what the program would have done *inside* displayDay; it is the continuation of displayDay() at the *current* point when we try to get the data using AJAX. Ideally, we'd really just like to write the following:
 
     // magicCC doesn't actually exist in Javascript.
     function displayDayCC() {
@@ -56,7 +56,7 @@ This is also called a continuation, because `callback` represents the place wher
     }
     displayDayCC();
 
-  However, we can't do this, because an AJAX call *has* to take a callback. This is where call/cc - "call with current continuation" comes in. `magicCC` should be a function that takes the current continuation of the computation and wraps it up in a function that is passed to somewhere else, which *may* (but doesn't have to) call it back:
+  However, we can't do this, because an AJAX call *has* to take a callback. This is where call/cc - "call with current continuation" comes in. In the code above, `magicCC` should be a function that takes the current continuation of the computation and wraps it up in a function that is passed to somewhere else, which *may* (but doesn't have to) call it back:
 
     function displayDayCCExpanded() {
       var numChars = 3;
@@ -64,9 +64,10 @@ This is also called a continuation, because `callback` represents the place wher
         var d = result;
         var day = d.substr(0, numChars);
         alert(day + " is the day of " + d);
-        return_original(day); // This would actually return from displayDayCCExpanded().
+        return_original(day); // This would actually return where displayDayCCExpanded() was called.
       }
       cURL(currentContinuation, "http://www.garron.us/api/cors/date/");
+      // Don't actually return yet.
     }
     displayDayCCExpanded();
 
